@@ -1,0 +1,3 @@
+https://protobuf.dev/getting-started/gotutorial/
+protoc -I=$PWD --go_out ../out sample.proto
+

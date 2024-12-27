@@ -1,0 +1,4 @@
+# Required capabilities.
+sudo setcap cap_bpf,cap_net_bind_service,cap_net_admin+eip ./link-share
+
+https://pkg.go.dev/github.com/google/nftables#section-readme

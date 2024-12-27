@@ -1,0 +1,33 @@
+syntax = "proto3";
+package link_proto;
+
+option go_package = "code-ointment/link-share/link_proto";
+
+message Helo {
+    string ipaddr = 1;
+    string domain = 2;
+}
+
+enum LinkState {
+    DOWN = 0 ;
+    UP = 1 ;
+}
+
+message Route {
+    int32 op = 1;
+    string dest = 2;
+}
+
+message Announce {
+    LinkState lstate = 1;
+    string gateway = 2;
+    string domain = 3;
+    repeated Route routes = 4;
+}
+
+message Packet {
+    oneof pkttype {
+        Helo helo = 1;
+        Announce announce = 2;
+    }
+}
