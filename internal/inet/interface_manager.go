@@ -68,8 +68,6 @@ func (ifm *InterfaceManager) classify(l netlink.Link) consts.LinkClass {
 		if lattrs.RawFlags&unix.IFF_LOOPBACK != unix.IFF_LOOPBACK {
 			ifm.interfaces = append(ifm.interfaces, l)
 			return consts.STANDARD
-		} else {
-			slog.Debug("Skipping loopback interface", "name", lattrs.Name)
 		}
 	}
 
@@ -113,6 +111,9 @@ func (ifm *InterfaceManager) IsUp(l netlink.Link) bool {
 	return false
 }
 
+/*
+* Listen for  kernel link updates.
+ */
 func (ifm *InterfaceManager) linkMonitor() {
 
 	ch := make(chan netlink.LinkUpdate)
@@ -142,4 +143,17 @@ func (ifm *InterfaceManager) linkMonitor() {
 			l.Attrs().RawFlags = update.Link.Attrs().RawFlags
 		}
 	}
+}
+
+func (ifm *InterfaceManager) GetTunnelByIndex(linkIndex int) netlink.Link {
+
+	ifm.mutex.Lock()
+	defer ifm.mutex.Unlock()
+
+	for _, tun := range ifm.tunnels {
+		if tun.Attrs().Index == linkIndex {
+			return tun
+		}
+	}
+	return nil
 }

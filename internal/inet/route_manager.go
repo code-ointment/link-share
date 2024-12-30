@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"os"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -12,15 +14,17 @@ import (
 )
 
 type RouteManager struct {
-	ifm          *InterfaceManager
-	localUpdates []RouteUpdate   // Routes we learned from the kernel
-	selfRoutes   []netlink.Route // Routes the manager was asked to add
+	ifm            *InterfaceManager
+	learnedUpdates []RouteUpdate   // Routes we learned from the kernel
+	selfRoutes     []netlink.Route // Routes the manager was asked to add
 
 	mutex   sync.Mutex
 	updated chan struct{}
 
-	def6Net *net.IPNet // Handy constants
-	def4Net *net.IPNet
+	routingEnabled int
+	nfu            *NftUtil
+	def6Net        *net.IPNet // Handy constants
+	def4Net        *net.IPNet
 }
 
 type RouteUpdate struct {
@@ -35,14 +39,62 @@ func NewRouteManager(manager *InterfaceManager) *RouteManager {
 		updated: make(chan struct{}),
 	}
 
+	l := rm.GetDefaultLink()
+	rm.nfu = NewNftUtil(l.Attrs().Name)
+
 	// handy defaults
 	_, rm.def6Net, _ = net.ParseCIDR("::/0")
 	_, rm.def4Net, _ = net.ParseCIDR("0.0.0.0/0")
 
 	go rm.routeMonitor()
 
+	rm.initLearnedUpdates()
 	return &rm
 
+}
+
+/*
+* Turn host routing on and off
+ */
+func (rm *RouteManager) EnableRouting() {
+
+	if rm.routingEnabled == 1 {
+		return
+	}
+
+	rm.routingEnabled = 1
+	rm.setRouting(rm.routingEnabled)
+	rm.nfu.EnableForwarding()
+}
+
+func (rm *RouteManager) DisableRouting() {
+
+	if rm.routingEnabled == 0 {
+		return
+	}
+
+	rm.routingEnabled = 0
+	rm.setRouting(rm.routingEnabled)
+	rm.nfu.DisableForwarding()
+}
+
+func (rm *RouteManager) setRouting(onoff int) {
+
+	v := strconv.Itoa(onoff)
+
+	ctl := []string{
+		"/proc/sys/net/ipv4/ip_forward",
+		"/proc/sys/net/ipv6/conf/all/forwarding"}
+
+	for _, fname := range ctl {
+		fd, err := os.OpenFile(fname, os.O_RDWR, 0644)
+		if err != nil {
+			slog.Warn("error opening", "fname", fname, "error", err)
+			continue
+		}
+		fd.Write([]byte(v))
+		fd.Close()
+	}
 }
 
 /*
@@ -64,12 +116,12 @@ func (rm *RouteManager) routeMonitor() {
 		ru := <-ch
 
 		// Don't advertise routes we inserted.
-		if rm.findOwnRoute(ru.Dst) != nil {
+		if rm.findSelfRouteLocked(ru.Dst) != nil {
 			slog.Debug("own route, not announced")
 			continue
 		}
 
-		if rm.classify(&ru) {
+		if rm.classifyUpdate(&ru) {
 			rm.updateRoutes(ru.Type, ru.Route.Dst)
 			rm.routesReady()
 		}
@@ -109,10 +161,50 @@ func (rm *RouteManager) netEqual(a *net.IPNet, b *net.IPNet) bool {
 }
 
 /*
+* Read routes and initLearnedUpdates ourselves.
+ */
+func (rm *RouteManager) initLearnedUpdates() {
+
+	l := rm.GetDefaultLink()
+
+	netFamilies := []int{netlink.FAMILY_V4, netlink.FAMILY_V6}
+
+	for _, family := range netFamilies {
+		routes, err := netlink.RouteList(l, family)
+		if err != nil {
+			slog.Error("failed getting routes", "error", err)
+			return
+		}
+
+		for _, rt := range routes {
+
+			ru := netlink.RouteUpdate{Type: unix.RTM_NEWROUTE,
+				Route: rt,
+			}
+			if rm.classifyUpdate(&ru) {
+				rm.updateRoutes(unix.RTM_NEWROUTE, ru.Dst)
+				slog.Info("Route", "rt", rt)
+			}
+		}
+	}
+}
+
+/*
+* How many route have we learned?
+ */
+func (rm *RouteManager) LearnedCount() int {
+	rm.mutex.Lock()
+	defer rm.mutex.Unlock()
+
+	c := len(rm.learnedUpdates)
+	return c
+}
+
+/*
 * Determine if this is a route we're intereseted in.
 * Looking for non-local, non-host routes.
  */
-func (rm *RouteManager) classify(ru *netlink.RouteUpdate) bool {
+func (rm *RouteManager) classifyUpdate(ru *netlink.RouteUpdate) bool {
 
 	l := rm.ifm.GetLinkByIndex(ru.LinkIndex)
 	if l == nil {
@@ -138,7 +230,15 @@ func (rm *RouteManager) classify(ru *netlink.RouteUpdate) bool {
 		return false
 	}
 
-	return true
+	return rm.IsTunnelRoute(ru)
+}
+
+/*
+* Check for route using a link that is a tunnel.
+ */
+func (rm *RouteManager) IsTunnelRoute(ru *netlink.RouteUpdate) bool {
+
+	return rm.ifm.GetTunnelByIndex(ru.LinkIndex) != nil
 }
 
 /*
@@ -147,17 +247,17 @@ func (rm *RouteManager) classify(ru *netlink.RouteUpdate) bool {
 func (rm *RouteManager) findRouteUpdate(op uint16, dst *net.IPNet) []*RouteUpdate {
 
 	matches := []*RouteUpdate{}
-	for i, u := range rm.localUpdates {
+	for i, u := range rm.learnedUpdates {
 
 		if op == unix.RTM_DELROUTE {
 			if rm.netEqual(&u.Dst, dst) ||
 				rm.netEqual(rm.def4Net, dst) ||
 				rm.netEqual(rm.def6Net, dst) {
-				matches = append(matches, &rm.localUpdates[i])
+				matches = append(matches, &rm.learnedUpdates[i])
 			}
 		} else {
 			if rm.netEqual(&u.Dst, dst) {
-				matches = append(matches, &rm.localUpdates[i])
+				matches = append(matches, &rm.learnedUpdates[i])
 			}
 		}
 	}
@@ -179,15 +279,19 @@ func (rm *RouteManager) updateRoutes(op uint16, dst *net.IPNet) {
 		if op == unix.RTM_NEWROUTE &&
 			!rm.netEqual(rm.def4Net, dst) &&
 			!rm.netEqual(rm.def6Net, dst) {
-			rm.localUpdates = append(rm.localUpdates, ru)
+			rm.learnedUpdates = append(rm.learnedUpdates, ru)
+			rm.EnableRouting()
 		}
 	} else {
 		for _, m := range matches {
 			m.Op = op
 		}
+		if op == unix.RTM_DELROUTE {
+			rm.DisableRouting() // TODO: Support multiple gw interfaces.
+		}
 	}
 
-	for _, u := range rm.localUpdates {
+	for _, u := range rm.learnedUpdates {
 
 		op := fmt.Sprintf("0x%x", u.Op)
 		d := IPNetToCidr(&u.Dst)
@@ -206,7 +310,7 @@ func (rm *RouteManager) GetRouteUpdates() []RouteUpdate {
 	defer rm.mutex.Unlock()
 
 	r := []RouteUpdate{}
-	r = append(r, rm.localUpdates...)
+	r = append(r, rm.learnedUpdates...)
 	return r
 }
 
@@ -226,27 +330,29 @@ func (rm *RouteManager) WaitForUpdate() {
 	<-rm.updated
 }
 
-func (rm *RouteManager) GetDefaultLink() {
+func (rm *RouteManager) GetDefaultLink() netlink.Link {
 
 	_, g, _ := net.ParseCIDR("8.8.8.8/32")
 
 	routes, err := netlink.RouteGet(g.IP)
 	if err != nil {
 		slog.Warn("get default link failed", "error", err)
-		return
+		return nil
 	}
 
 	if len(routes) > 0 {
 		for _, r := range routes {
-			slog.Info("def route", "index", r.LinkIndex)
+			l := rm.ifm.GetLinkByIndex(r.LinkIndex)
+			return l
 		}
 	}
+	return nil
 }
 
 /*
 * Look for the destination that were added via rm.AddRoute
  */
-func (rm *RouteManager) findOwnRoute(dst *net.IPNet) *netlink.Route {
+func (rm *RouteManager) findSelfRoute(dst *net.IPNet) *netlink.Route {
 
 	for _, rt := range rm.selfRoutes {
 		if rm.netEqual(dst, rt.Dst) {
@@ -254,6 +360,16 @@ func (rm *RouteManager) findOwnRoute(dst *net.IPNet) *netlink.Route {
 		}
 	}
 	return nil
+}
+
+/*
+* Find self route with mutex lock on.
+ */
+func (rm *RouteManager) findSelfRouteLocked(dst *net.IPNet) *netlink.Route {
+	rm.mutex.Lock()
+	defer rm.mutex.Unlock()
+
+	return rm.findSelfRoute(dst)
 }
 
 /*
@@ -270,7 +386,7 @@ func (rm *RouteManager) AddRoute(dest string, gateway string) {
 		return
 	}
 
-	if rm.findOwnRoute(dst) != nil {
+	if rm.findSelfRoute(dst) != nil {
 		slog.Info("route exists, skipping", "route", dest)
 		return
 	}
@@ -310,7 +426,7 @@ func (rm *RouteManager) DeleteRoute(dest string, gateway string) {
 		return
 	}
 
-	rt := rm.findOwnRoute(dst)
+	rt := rm.findSelfRoute(dst)
 	if rt == nil {
 		slog.Info("not a self route", "route", dest)
 		return
@@ -321,10 +437,10 @@ func (rm *RouteManager) DeleteRoute(dest string, gateway string) {
 		return
 	}
 
-	rm.delOwnRoute(dst)
+	rm.delSelfRoute(dst)
 }
 
-func (rm *RouteManager) delOwnRoute(dst *net.IPNet) *netlink.Route {
+func (rm *RouteManager) delSelfRoute(dst *net.IPNet) *netlink.Route {
 
 	for i, rt := range rm.selfRoutes {
 		if rm.netEqual(dst, rt.Dst) {

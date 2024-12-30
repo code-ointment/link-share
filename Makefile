@@ -2,7 +2,7 @@ ROOT := ${CURDIR}
 GOPRIVATE := bitbucket.org,*.bitbucket.org
 GCFLAGS='-N -l'
 GCLDFLAGS=''
-BUILD_CMD =go build \
+BUILD_CMD =go build -race \
                 -gcflags=${GCFLAGS} \
                 -ldflags=${GCLDFLAGS} \
                 -o ${ROOT}/bin/$@ \

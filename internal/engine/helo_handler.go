@@ -24,6 +24,9 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 		h = NewHost(ip)
 		pe.hosts = append(pe.hosts, h)
 		slog.Info("new host", "host", h.IP.String())
+
+		// New guy on the block.  Send routes we have learned.
+		pe.AdvertiseRoutes()
 		return
 		// Schedule Annoucement.
 	}

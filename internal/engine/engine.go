@@ -28,6 +28,7 @@ func NewProtocolEngine() *ProtocolEngine {
 	pe := ProtocolEngine{}
 	pe.ifm = inet.NewInterfaceManager()
 	pe.rm = inet.NewRouteManager(pe.ifm)
+
 	pe.domain = "placeholder"
 
 	return &pe

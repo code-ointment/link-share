@@ -16,11 +16,16 @@ import (
 )
 
 /*
-* Wait for route manager to tell us that there is an update and
-* advertiste the update.
+* Go routine that advertises route updates.
  */
 func (pe *ProtocolEngine) AdvertiseUpdates() {
 
+	// Advertise routes the router manager found on initialization.
+	if pe.rm.LearnedCount() > 0 {
+		pe.AdvertiseRoutes()
+	}
+
+	// Wait for an update and advertise.
 	for {
 		pe.rm.WaitForUpdate()
 		pe.AdvertiseRoutes()
@@ -34,7 +39,6 @@ func (pe *ProtocolEngine) AdvertiseRoutes() {
 
 	rts := pe.rm.GetRouteUpdates()
 	for _, rt := range rts {
-		slog.Info("advertise", "op", rt.Op, "dst", rt.Dst.IP.String())
 		pe.SendAdvertisement(&rt)
 	}
 }
@@ -68,6 +72,7 @@ func (pe *ProtocolEngine) SendAdvertisement(rt *inet.RouteUpdate) {
 		announce := link_proto.Announce{
 			Lstate:  link_proto.LinkState_UP,
 			Gateway: me.String(),
+			Domain:  pe.domain,
 			Routes:  []*link_proto.Route{&route},
 		}
 
