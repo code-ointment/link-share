@@ -40,6 +40,7 @@ func NewProtocolEngine() *ProtocolEngine {
 func (pe *ProtocolEngine) Start() {
 	pe.setupMulticast()
 	pe.listen()
+
 	go pe.AdvertiseUpdates()
 }
 
@@ -121,13 +122,13 @@ func (pe *ProtocolEngine) listenOnConnection(entry ConnectionCtx) {
 			slog.Warn("errant packet")
 			continue
 		}
-		slog.Debug("recv", "addr", addr.String(), "bytes", n)
 
 		if pe.IsLocalAddr(addr) {
-			slog.Debug("my packet, dropping")
+			//slog.Debug("my packet, dropping")
 			continue
 		}
 
+		slog.Debug("recv", "addr", addr.String(), "bytes", n)
 		packet := link_proto.Packet{}
 		if err = proto.Unmarshal(buffer[:n], &packet); err != nil {
 			slog.Error("Failed unmarshalling", "error", err)

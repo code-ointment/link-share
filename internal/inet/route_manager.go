@@ -122,7 +122,7 @@ func (rm *RouteManager) routeMonitor() {
 		}
 
 		if rm.classifyUpdate(&ru) {
-			rm.updateRoutes(ru.Type, ru.Route.Dst)
+			rm.updateLearned(ru.Type, ru.Route.Dst)
 			rm.routesReady()
 		}
 	}
@@ -165,12 +165,11 @@ func (rm *RouteManager) netEqual(a *net.IPNet, b *net.IPNet) bool {
  */
 func (rm *RouteManager) initLearnedUpdates() {
 
-	l := rm.GetDefaultLink()
-
 	netFamilies := []int{netlink.FAMILY_V4, netlink.FAMILY_V6}
 
 	for _, family := range netFamilies {
-		routes, err := netlink.RouteList(l, family)
+
+		routes, err := netlink.RouteList(nil, family)
 		if err != nil {
 			slog.Error("failed getting routes", "error", err)
 			return
@@ -182,8 +181,8 @@ func (rm *RouteManager) initLearnedUpdates() {
 				Route: rt,
 			}
 			if rm.classifyUpdate(&ru) {
-				rm.updateRoutes(unix.RTM_NEWROUTE, ru.Dst)
-				slog.Info("Route", "rt", rt)
+				slog.Info("adding to learned updates", "rt", rt)
+				rm.updateLearned(unix.RTM_NEWROUTE, ru.Dst)
 			}
 		}
 	}
@@ -212,12 +211,12 @@ func (rm *RouteManager) classifyUpdate(ru *netlink.RouteUpdate) bool {
 		return false
 	}
 
-	// Check interface name.
+	// Make sure name looks like a tunnel
 	if !rm.qualifyLinkName(l) {
 		return false
 	}
 
-	// Host route check
+	// No host routes
 	bits, _ := ru.Dst.Mask.Size()
 	if bits == 32 || bits == 128 {
 		return false
@@ -230,6 +229,12 @@ func (rm *RouteManager) classifyUpdate(ru *netlink.RouteUpdate) bool {
 		return false
 	}
 
+	// This is not a default route
+	if rm.netEqual(ru.Dst, rm.def4Net) || rm.netEqual(ru.Dst, rm.def6Net) {
+		return false
+	}
+
+	// If this is a route using a tunnel device...
 	return rm.IsTunnelRoute(ru)
 }
 
@@ -244,7 +249,7 @@ func (rm *RouteManager) IsTunnelRoute(ru *netlink.RouteUpdate) bool {
 /*
 * Find matching routes.  If deleting, default routes are wild cards.
  */
-func (rm *RouteManager) findRouteUpdate(op uint16, dst *net.IPNet) []*RouteUpdate {
+func (rm *RouteManager) findLearnedUpdate(op uint16, dst *net.IPNet) []*RouteUpdate {
 
 	matches := []*RouteUpdate{}
 	for i, u := range rm.learnedUpdates {
@@ -267,13 +272,13 @@ func (rm *RouteManager) findRouteUpdate(op uint16, dst *net.IPNet) []*RouteUpdat
 /*
 * Find routes that match the update and set flags and/or add as needed.
  */
-func (rm *RouteManager) updateRoutes(op uint16, dst *net.IPNet) {
+func (rm *RouteManager) updateLearned(op uint16, dst *net.IPNet) {
 
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
 
 	ru := RouteUpdate{Op: op, Dst: *dst}
-	matches := rm.findRouteUpdate(op, dst)
+	matches := rm.findLearnedUpdate(op, dst)
 
 	if len(matches) == 0 {
 		if op == unix.RTM_NEWROUTE &&

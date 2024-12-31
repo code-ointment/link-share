@@ -1,5 +1,8 @@
 package inet
 
+/*
+* Track interfaces and tunnels.
+ */
 import (
 	"log/slog"
 	"strings"
