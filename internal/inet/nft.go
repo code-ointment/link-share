@@ -160,7 +160,26 @@ func (nfu *NftUtil) EnableForwarding() {
 	}
 }
 
+/*
+* Remove tables and null out object.
+ */
 func (nfu *NftUtil) DisableForwarding() {
-	slog.Info("disable forwarding called.")
 
+	c, err := nftables.New(nftables.AsLasting())
+	if err != nil {
+		slog.Error("failed opening nftables", "error", err)
+		os.Exit(1)
+	}
+
+	c.DelTable(nfu.nat)
+	c.DelTable(nfu.filter)
+
+	nfu.nat = nil
+	nfu.prerouting = nil
+	nfu.postrouting = nil
+
+	nfu.filter = nil
+	nfu.filterInput = nil
+	nfu.filterOutput = nil
+	nfu.filterForward = nil
 }

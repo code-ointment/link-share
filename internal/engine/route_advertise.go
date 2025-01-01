@@ -53,6 +53,8 @@ func (pe *ProtocolEngine) SendAdvertisement(rt *inet.RouteUpdate) {
 	dst := &net.UDPAddr{IP: mgroup, Port: consts.ListenPort}
 
 	pe.mutex.Lock()
+	defer pe.mutex.Unlock()
+
 	for _, c := range pe.connections {
 
 		var me net.IP
@@ -92,5 +94,4 @@ func (pe *ProtocolEngine) SendAdvertisement(rt *inet.RouteUpdate) {
 			slog.Error("failed writing", "error", err)
 		}
 	}
-	pe.mutex.Unlock()
 }

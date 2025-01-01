@@ -13,7 +13,7 @@ import (
 func (pe *ProtocolEngine) AnnounceHandler(an *link_proto.Announce) {
 
 	rts := an.GetRoutes()
-	gw := an.Gateway
+	gw := an.GetGateway()
 	domain := an.GetDomain()
 
 	for _, rt := range rts {
@@ -23,6 +23,7 @@ func (pe *ProtocolEngine) AnnounceHandler(an *link_proto.Announce) {
 				"gw", gw, "dst", rt.Dest, "domain", domain)
 			pe.rm.AddRoute(rt.Dest, gw)
 		}
+
 		if rt.Op == unix.RTM_DELROUTE {
 			slog.Info("delete route ",
 				"gw", gw, "dst", rt.Dest, "domain", domain)

@@ -15,7 +15,6 @@ import (
 func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 
 	pe.mutex.Lock()
-	defer pe.mutex.Unlock()
 
 	ip := net.ParseIP(hi.Ipaddr)
 	h := pe.findHost(ip)
@@ -26,6 +25,8 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 		slog.Info("new host", "host", h.IP.String())
 
 		// New guy on the block.  Send routes we have learned.
+		pe.mutex.Unlock()
+
 		pe.AdvertiseRoutes()
 		return
 		// Schedule Annoucement.
@@ -34,6 +35,7 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 	slog.Info("update host", "host", h.IP.String())
 	h.State = consts.UP
 	h.UpdateTime = time.Now().Unix()
+	pe.mutex.Unlock()
 
 }
 

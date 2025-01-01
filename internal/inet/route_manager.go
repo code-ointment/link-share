@@ -1,5 +1,12 @@
 package inet
 
+/*
+* learnedUpdates are route updates caused by the VPN on the gateway host.
+* learnedUpdates will typically be on the gateway host.
+*
+* selfRoutes are routes added by the route manager.  This sort route should
+* exist on the 'client' hosts
+ */
 import (
 	"fmt"
 	"log/slog"
@@ -18,8 +25,11 @@ type RouteManager struct {
 	learnedUpdates []RouteUpdate   // Routes we learned from the kernel
 	selfRoutes     []netlink.Route // Routes the manager was asked to add
 
-	mutex   sync.Mutex
-	updated chan struct{}
+	mutex sync.Mutex
+
+	updateCount     int
+	updateMutex     sync.Mutex
+	updateCondition *sync.Cond
 
 	routingEnabled int
 	nfu            *NftUtil
@@ -35,8 +45,7 @@ type RouteUpdate struct {
 func NewRouteManager(manager *InterfaceManager) *RouteManager {
 
 	rm := RouteManager{
-		ifm:     manager,
-		updated: make(chan struct{}),
+		ifm: manager,
 	}
 
 	l := rm.GetDefaultLink()
@@ -47,6 +56,8 @@ func NewRouteManager(manager *InterfaceManager) *RouteManager {
 	_, rm.def4Net, _ = net.ParseCIDR("0.0.0.0/0")
 
 	go rm.routeMonitor()
+
+	rm.updateCondition = sync.NewCond(&rm.updateMutex)
 
 	rm.initLearnedUpdates()
 	return &rm
@@ -323,16 +334,27 @@ func (rm *RouteManager) GetRouteUpdates() []RouteUpdate {
 * Alert anyone listening on  the update channel.
  */
 func (rm *RouteManager) routesReady() {
-	go func() {
-		rm.updated <- struct{}{}
-	}()
+	rm.updateMutex.Lock()
+	rm.updateCount += 1
+	rm.updateCondition.Signal()
+	rm.updateMutex.Unlock()
 }
 
 /*
 * Wait for update to show up on the update channel.
  */
 func (rm *RouteManager) WaitForUpdate() {
-	<-rm.updated
+
+	rm.updateMutex.Lock()
+
+	for rm.updateCount == 0 {
+		rm.updateCondition.Wait()
+	}
+
+	if rm.updateCount > 0 {
+		rm.updateCount -= 1
+	}
+	rm.updateMutex.Unlock()
 }
 
 func (rm *RouteManager) GetDefaultLink() netlink.Link {

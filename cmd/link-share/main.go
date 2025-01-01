@@ -1,9 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -40,6 +42,21 @@ func sigWait() {
 }
 
 /*
+* Dump stack similarly to java when a  QUIT is recieved.
+ */
+func siqQuit() {
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGQUIT)
+	buf := make([]byte, 1<<20)
+	for {
+		<-sigs
+		stacklen := runtime.Stack(buf, true)
+		fmt.Printf("=== received SIGQUIT ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
+	}
+}
+
+/*
 * Sends periodic helo.
  */
 func heloThread(eng *engine.ProtocolEngine) {
@@ -52,6 +69,7 @@ func heloThread(eng *engine.ProtocolEngine) {
 func main() {
 
 	//rtTest()
+	go siqQuit()
 
 	eng := engine.NewProtocolEngine()
 	eng.Start()
