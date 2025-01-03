@@ -42,18 +42,20 @@ func sigWait() {
 }
 
 /*
-* Dump stack similarly to java when a  QUIT is recieved.
+* Dump stack similarly to java when a  QUIT is recieved.  Exit while we're
+* at it.
  */
 func siqQuit() {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGQUIT)
-	buf := make([]byte, 1<<20)
-	for {
-		<-sigs
-		stacklen := runtime.Stack(buf, true)
-		fmt.Printf("=== received SIGQUIT ===\n*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
-	}
+
+	<-sigs
+	buf := make([]byte, 1048576) // 1MB
+
+	stacklen := runtime.Stack(buf, true)
+	fmt.Printf("*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
+	os.Exit(int(syscall.SIGQUIT))
 }
 
 /*

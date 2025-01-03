@@ -24,9 +24,11 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 		pe.hosts = append(pe.hosts, h)
 		slog.Info("new host", "host", h.IP.String())
 
-		// New guy on the block.  Send routes we have learned.
+		// TODO: Must release lock before calling AdvertiseRoutes.  Probable
+		// bad form, rethink scheme.
 		pe.mutex.Unlock()
 
+		// New guy on the block.  Send routes we have learned.
 		pe.AdvertiseRoutes()
 		return
 		// Schedule Annoucement.

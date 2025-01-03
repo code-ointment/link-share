@@ -25,11 +25,8 @@ type RouteManager struct {
 	learnedUpdates []RouteUpdate   // Routes we learned from the kernel
 	selfRoutes     []netlink.Route // Routes the manager was asked to add
 
-	mutex sync.Mutex
-
-	updateCount     int
-	updateMutex     sync.Mutex
-	updateCondition *sync.Cond
+	mutex   sync.Mutex
+	updated chan struct{}
 
 	routingEnabled int
 	nfu            *NftUtil
@@ -45,7 +42,8 @@ type RouteUpdate struct {
 func NewRouteManager(manager *InterfaceManager) *RouteManager {
 
 	rm := RouteManager{
-		ifm: manager,
+		ifm:     manager,
+		updated: make(chan struct{}),
 	}
 
 	l := rm.GetDefaultLink()
@@ -56,8 +54,6 @@ func NewRouteManager(manager *InterfaceManager) *RouteManager {
 	_, rm.def4Net, _ = net.ParseCIDR("0.0.0.0/0")
 
 	go rm.routeMonitor()
-
-	rm.updateCondition = sync.NewCond(&rm.updateMutex)
 
 	rm.initLearnedUpdates()
 	return &rm
@@ -331,30 +327,20 @@ func (rm *RouteManager) GetRouteUpdates() []RouteUpdate {
 }
 
 /*
-* Alert anyone listening on  the update channel.
+* Alert anyone listening on the update channel.  The idea here is to write to
+* the channel without blocking the caller.
  */
 func (rm *RouteManager) routesReady() {
-	rm.updateMutex.Lock()
-	rm.updateCount += 1
-	rm.updateCondition.Signal()
-	rm.updateMutex.Unlock()
+	go func() {
+		rm.updated <- struct{}{}
+	}()
 }
 
 /*
 * Wait for update to show up on the update channel.
  */
 func (rm *RouteManager) WaitForUpdate() {
-
-	rm.updateMutex.Lock()
-
-	for rm.updateCount == 0 {
-		rm.updateCondition.Wait()
-	}
-
-	if rm.updateCount > 0 {
-		rm.updateCount -= 1
-	}
-	rm.updateMutex.Unlock()
+	<-rm.updated
 }
 
 func (rm *RouteManager) GetDefaultLink() netlink.Link {
