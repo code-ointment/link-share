@@ -27,7 +27,10 @@ func NewProtocolEngine() *ProtocolEngine {
 
 	pe := ProtocolEngine{}
 	pe.ifm = inet.NewInterfaceManager()
+	pe.ifm.Start()
+
 	pe.rm = inet.NewRouteManager(pe.ifm)
+	pe.rm.Start()
 
 	pe.domain = "placeholder"
 

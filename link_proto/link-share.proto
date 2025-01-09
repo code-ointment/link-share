@@ -22,7 +22,9 @@ message Announce {
     LinkState lstate = 1;
     string gateway = 2;
     string domain = 3;
-    repeated Route routes = 4;
+    string nameservers = 4 ;
+    string searchdomains = 5;
+    repeated Route routes = 6;
 }
 
 message Packet {

@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/code-ointment/link-share/internal/engine"
+	"github.com/code-ointment/link-share/internal/inet"
 	"github.com/vishvananda/netlink"
 )
 
@@ -72,6 +73,15 @@ func main() {
 
 	//rtTest()
 	go siqQuit()
+
+	factory := inet.NewResolverConfigFactory()
+	rc := factory.GetDNSConfig()
+
+	rc.BackupConfig()
+	rc.SetNameServers(rc.GetNameServers() + " 192.168.1.2")
+	rc.Commit()
+	slog.Debug("test", "NameServers", rc.GetNameServers(),
+		"domains", rc.GetDomains())
 
 	eng := engine.NewProtocolEngine()
 	eng.Start()

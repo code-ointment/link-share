@@ -1,0 +1,12 @@
+[Unit]
+Before=network-post.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/code-ointment/link-share
+ExecStart=/opt/code-ointment/link-share/bin/link-share.sh start
+ExecStop=/opt/code-ointment/link-share/bin/link-share.sh stop
+
+[Install]
+WantedBy=multi-user.target

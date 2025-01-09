@@ -46,18 +46,23 @@ func NewRouteManager(manager *InterfaceManager) *RouteManager {
 		updated: make(chan struct{}),
 	}
 
-	l := rm.GetDefaultLink()
+	l := rm.ifm.GetDefaultLink()
 	rm.nfu = NewNftUtil(l.Attrs().Name)
 
 	// handy defaults
 	_, rm.def6Net, _ = net.ParseCIDR("::/0")
 	_, rm.def4Net, _ = net.ParseCIDR("0.0.0.0/0")
 
-	go rm.routeMonitor()
-
 	rm.initLearnedUpdates()
 	return &rm
 
+}
+
+/*
+* Launch the route listening thread.
+ */
+func (rm *RouteManager) Start() {
+	go rm.routeMonitor()
 }
 
 /*

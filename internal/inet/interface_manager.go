@@ -5,6 +5,7 @@ package inet
  */
 import (
 	"log/slog"
+	"net"
 	"strings"
 	"sync"
 
@@ -35,9 +36,14 @@ func NewInterfaceManager() *InterfaceManager {
 		ifm.classify(l)
 	}
 
-	go ifm.linkMonitor()
-
 	return &ifm
+}
+
+/*
+* Launch the link monitor thread.
+ */
+func (ifm *InterfaceManager) Start() {
+	go ifm.linkMonitor()
 }
 
 // Replace with iterator later.
@@ -156,6 +162,25 @@ func (ifm *InterfaceManager) GetTunnelByIndex(linkIndex int) netlink.Link {
 	for _, tun := range ifm.tunnels {
 		if tun.Attrs().Index == linkIndex {
 			return tun
+		}
+	}
+	return nil
+}
+
+func (ifm *InterfaceManager) GetDefaultLink() netlink.Link {
+
+	_, g, _ := net.ParseCIDR("8.8.8.8/32")
+
+	routes, err := netlink.RouteGet(g.IP)
+	if err != nil {
+		slog.Warn("get default link failed", "error", err)
+		return nil
+	}
+
+	if len(routes) > 0 {
+		for _, r := range routes {
+			l := ifm.GetLinkByIndex(r.LinkIndex)
+			return l
 		}
 	}
 	return nil
