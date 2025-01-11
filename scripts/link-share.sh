@@ -3,8 +3,7 @@
 fullpath=$(realpath $0)
 scriptpath=$(dirname $fullpath)
 #
-# dirname twice is trimming the path string.  homepath should be something
-# like /opt/rvbd/rvbd by now
+# dirname twice is trimming the path string. 
 #
 homepath=$(dirname $scriptpath)
 cd $homepath

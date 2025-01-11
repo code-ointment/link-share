@@ -18,12 +18,28 @@ link-share:
 	@echo "@ building: [$@]..."
 	${BUILD_CMD}
 
+# output will be found in ~/rpmbuild/RPM/x86_64
+#
 rpm:
 	tar -czf ${HOME}/rpmbuild/SOURCES/link-share.tar.gz .
 	rpmbuild -bb  \
 		--define "build_number  ${BUILD_NUMBER}" \
 		--define "build_version ${BUILD_VERSION}" \
 		rpm-spec/link-share.spec
+
+# Output in build-output.
+#
+deb:
+	BUILD_NUMBER=${BUILD_NUMBER} BUILD_VERSION=${BUILD_VERSION} scripts/makedeb.sh
+
+# used by debian package create.
+install:
+	mkdir -p $(DESTDIR)$(prefix)/etc
+	mkdir -p $(DESTDIR)$(prefix)/bin
+	install bin/link-share $(DESTDIR)$(prefix)/bin
+	cp scripts/link-share.sh $(DESTDIR)$(prefix)/bin
+	chmod 755 $(DESTDIR)$(prefix)/bin/link-share.sh
+	cp etc/link-share.service $(DESTDIR)$(prefix)/etc
 
 generate : link_proto/link-share.pb.go
 
