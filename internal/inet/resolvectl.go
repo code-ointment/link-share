@@ -10,13 +10,14 @@ import (
 	"github.com/code-ointment/link-share/internal/linux"
 )
 
-/*
-* Note that domain and search were different a long time ago.  New school
-* is to collapse these items together.
- */
 type Resolvectl struct {
 	NameServers string
 	Domains     string
+
+	GlobalProtocols string
+	ResolvConfMode  string
+
+	Links []*ResolvectlEntry
 }
 
 func NewResolvectl() *Resolvectl {
@@ -48,14 +49,36 @@ func (rc *Resolvectl) ReadConfig() {
 	for scanner.Scan() {
 
 		line := scanner.Text()
-		if strings.Contains(line, "DNS Servers") {
-			rc.NameServers = rc.getValue(line)
+		if strings.Contains(line, "Global") {
+			rc.parseGlobal(scanner)
 			continue
 		}
 
-		if strings.Contains(line, "DNS Domain") {
-			rc.Domains = rc.getValue(line)
+		if strings.Contains(line, "Link") {
+			entry := NewResolvectlEntry(line, scanner)
+			slog.Info("entry", "link", entry)
+			rc.Links = append(rc.Links, entry)
 		}
+	}
+}
+
+/*
+* Parse global entry
+ */
+func (rc *Resolvectl) parseGlobal(scanner *bufio.Scanner) {
+
+	for scanner.Scan() {
+		line := scanner.Text()
+		if strings.Contains(line, "Protocols") {
+			rc.GlobalProtocols = rc.getValue(line)
+			continue
+		}
+
+		if strings.Contains(line, "resolv.conf mode") {
+			rc.ResolvConfMode = rc.getValue(line)
+			continue
+		}
+		return
 	}
 }
 
