@@ -38,6 +38,10 @@ func (pe *ProtocolEngine) AdvertiseUpdates() {
 func (pe *ProtocolEngine) AdvertiseRoutes() {
 
 	rts := pe.rm.GetRouteUpdates()
+	pe.dnsConfig.ReadConfig()
+
+	slog.Debug("dns config", "nameserver", pe.dnsConfig.GetNameServers(),
+		"domains", pe.dnsConfig.GetDomains())
 	for _, rt := range rts {
 		pe.SendAdvertisement(&rt)
 	}
@@ -72,10 +76,12 @@ func (pe *ProtocolEngine) SendAdvertisement(rt *inet.RouteUpdate) {
 			Dest: inet.IPNetToCidr(&rt.Dst),
 		}
 		announce := link_proto.Announce{
-			Lstate:  link_proto.LinkState_UP,
-			Gateway: me.String(),
-			Domain:  pe.domain,
-			Routes:  []*link_proto.Route{&route},
+			Lstate:        link_proto.LinkState_UP,
+			Gateway:       me.String(),
+			Domain:        pe.domain,
+			Nameservers:   pe.dnsConfig.GetNameServers(),
+			Searchdomains: pe.dnsConfig.GetDomains(),
+			Routes:        []*link_proto.Route{&route},
 		}
 
 		pph := link_proto.Packet_Announce{Announce: &announce}

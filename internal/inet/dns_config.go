@@ -13,6 +13,8 @@ type DnsConfig interface {
 	// Space separated list of search domains
 	SetDomains(domains string)
 	GetDomains() string
+	// Fetch the current DNS configuration
+	ReadConfig()
 	// Backup the current configuration
 	BackupConfig()
 	// Restore previously backed up configuration

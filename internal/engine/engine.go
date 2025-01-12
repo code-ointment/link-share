@@ -16,6 +16,7 @@ import (
 type ProtocolEngine struct {
 	ifm         *inet.InterfaceManager
 	rm          *inet.RouteManager
+	dnsConfig   inet.DnsConfig
 	connections []ConnectionCtx
 	mutex       sync.Mutex
 	localAddrs  []net.Addr
@@ -28,6 +29,9 @@ func NewProtocolEngine() *ProtocolEngine {
 	pe := ProtocolEngine{}
 	pe.ifm = inet.NewInterfaceManager()
 	pe.ifm.Start()
+
+	dnsFactory := inet.NewResolverConfigFactory()
+	pe.dnsConfig = dnsFactory.GetDNSConfig()
 
 	pe.rm = inet.NewRouteManager(pe.ifm)
 	pe.rm.Start()

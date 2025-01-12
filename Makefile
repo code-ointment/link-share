@@ -26,6 +26,9 @@ rpm:
 		--define "build_number  ${BUILD_NUMBER}" \
 		--define "build_version ${BUILD_VERSION}" \
 		rpm-spec/link-share.spec
+	mkdir -p ${PWD}/build-output
+	mv ${HOME}/rpmbuild/RPM/x86_64/link-share*.rpm build-output
+	rm ${HOME}/rpmbuild/SOURCES/link-share.tar.gz
 
 # Output in build-output.
 #
