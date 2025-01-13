@@ -13,7 +13,7 @@ func init() {
 
 	opts := slog.HandlerOptions{
 		AddSource: true,
-		Level:     slog.LevelDebug,
+		Level:     slog.LevelInfo,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.SourceKey {
 				src, _ := a.Value.Any().(*slog.Source)

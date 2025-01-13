@@ -22,7 +22,7 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 	if h == nil {
 		h = NewHost(ip)
 		pe.hosts = append(pe.hosts, h)
-		slog.Info("new host", "host", h.IP.String())
+		slog.Debug("new host", "host", h.IP.String())
 
 		// TODO: Must release lock before calling AdvertiseRoutes.  Probable
 		// bad form, rethink scheme.
@@ -34,7 +34,7 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 		// Schedule Annoucement.
 	}
 
-	slog.Info("update host", "host", h.IP.String())
+	slog.Debug("update host", "host", h.IP.String())
 	h.State = consts.UP
 	h.UpdateTime = time.Now().Unix()
 	pe.mutex.Unlock()
