@@ -55,11 +55,18 @@ func (rf *ResolverConfigFactory) isSystemdResolv() bool {
 
 			// nss-dns with systemd-resolve
 			if strings.Contains(line, "dns") {
+
+				// resolv.conf must be a symlink
+				stat, err := os.Lstat("/etc/resolv.conf")
+				if stat.Mode()&os.ModeSymlink == 0 {
+					return false
+				}
 				dest, err := os.Readlink("/etc/resolv.conf")
 				if err != nil {
 					slog.Warn("error reading /etc/resolv.conf", "error", err)
 					return false
 				}
+				// Real file name ends in stub-resolv.conf
 				if strings.HasSuffix(dest, "stub-resolv.conf") {
 					return rf.checkSystemdResolveStatus()
 				}

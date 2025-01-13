@@ -9,6 +9,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/code-ointment/link-share/internal/consts"
 	"github.com/code-ointment/link-share/internal/engine"
 	"github.com/code-ointment/link-share/internal/inet"
 	"github.com/vishvananda/netlink"
@@ -65,7 +66,8 @@ func siqQuit() {
 func heloThread(eng *engine.ProtocolEngine) {
 	for {
 		eng.SendHelo()
-		time.Sleep(time.Minute * 1)
+		eng.HostAccounting()
+		time.Sleep(time.Duration(consts.POLL_INTERVAL) * time.Second)
 	}
 }
 

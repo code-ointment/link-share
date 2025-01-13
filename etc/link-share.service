@@ -1,5 +1,5 @@
 [Unit]
-Before=network-post.target
+After=network-online.target
 
 [Service]
 Type=simple

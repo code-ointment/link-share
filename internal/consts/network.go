@@ -23,3 +23,7 @@ const (
 	STANDARD
 	UNUSED
 )
+
+const (
+	POLL_INTERVAL int = 60 // seconds
+)
