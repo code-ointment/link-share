@@ -2,8 +2,9 @@ package main
 
 import (
 	"log/slog"
-	"os"
 	"path/filepath"
+
+	"github.com/code-ointment/log-writer/log_file"
 )
 
 /*
@@ -11,9 +12,11 @@ import (
  */
 func init() {
 
+	args := GetArgs()
+
 	opts := slog.HandlerOptions{
 		AddSource: true,
-		Level:     slog.LevelDebug,
+		Level:     args.LogLevel,
 		ReplaceAttr: func(groups []string, a slog.Attr) slog.Attr {
 			if a.Key == slog.SourceKey {
 				src, _ := a.Value.Any().(*slog.Source)
@@ -23,7 +26,12 @@ func init() {
 			}
 			return a
 		}}
+
+	lw := log_file.NewLogFileWriter(
+		"/var/log/code-ointment/link-share/link-share.log",
+		5, 1024*1024)
+
 	//logger := slog.New(slog.NewJSONHandler(os.Stdout, &opts))
-	logger := slog.New(slog.NewTextHandler(os.Stdout, &opts))
+	logger := slog.New(slog.NewTextHandler(lw, &opts))
 	slog.SetDefault(logger)
 }

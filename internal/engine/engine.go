@@ -21,7 +21,8 @@ type ProtocolEngine struct {
 	mutex       sync.Mutex
 	localAddrs  []net.Addr
 	domain      string
-	hosts       []*Host
+	hosts       []*Host // Not sure I need this...
+	configured  bool    // received one announcement.
 }
 
 func NewProtocolEngine() *ProtocolEngine {
@@ -173,6 +174,17 @@ func (pe *ProtocolEngine) IsLocalAddr(addr net.Addr) bool {
 	return false
 }
 
+func (pe *ProtocolEngine) getHeloRequest() link_proto.HeloRequest {
+
+	// We're configured or we're holding tunnels.
+	// TODO: revisit holding tunnels condition
+	if pe.ifm.HasTunnels() || pe.configured {
+		return link_proto.HeloRequest_NONE
+	}
+
+	return link_proto.HeloRequest_INIT
+}
+
 /*
 * Send a helo on all interfaces.
  */
@@ -191,8 +203,9 @@ func (pe *ProtocolEngine) SendHelo() {
 		}
 
 		helo := link_proto.Helo{
-			Ipaddr: myAddr.String(),
-			Domain: pe.domain,
+			Ipaddr:  myAddr.String(),
+			Domain:  pe.domain,
+			Request: pe.getHeloRequest(),
 		}
 		pph := link_proto.Packet_Helo{Helo: &helo}
 		pkt := link_proto.Packet{

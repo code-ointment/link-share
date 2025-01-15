@@ -15,6 +15,7 @@ import (
 func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 
 	pe.mutex.Lock()
+	defer pe.mutex.Unlock()
 
 	ip := net.ParseIP(hi.Ipaddr)
 	h := pe.findHost(ip)
@@ -24,21 +25,19 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 		pe.hosts = append(pe.hosts, h)
 		slog.Debug("new host", "host", h.IP.String())
 
-		// TODO: Must release lock before calling AdvertiseRoutes.  Probable
-		// bad form, rethink scheme.
-		pe.mutex.Unlock()
-
 		// New guy on the block.  Send routes we have learned.
-		pe.AdvertiseRoutes()
+		pe.AdvertiseRoutesUL()
 		return
-		// Schedule Annoucement.
+	}
+
+	// Remote host is requesting an update.
+	if hi.Request == link_proto.HeloRequest_INIT {
+		pe.AdvertiseRoutesUL()
 	}
 
 	slog.Debug("update host", "host", h.IP.String())
 	h.State = consts.UP
 	h.UpdateTime = time.Now().Unix()
-	pe.mutex.Unlock()
-
 }
 
 /*

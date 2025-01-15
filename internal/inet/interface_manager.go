@@ -167,6 +167,13 @@ func (ifm *InterfaceManager) GetTunnelByIndex(linkIndex int) netlink.Link {
 	return nil
 }
 
+/*
+* Have we detected any tunnels?
+ */
+func (ifm *InterfaceManager) HasTunnels() bool {
+	return len(ifm.tunnels) != 0
+}
+
 func (ifm *InterfaceManager) GetDefaultLink() netlink.Link {
 
 	_, g, _ := net.ParseCIDR("8.8.8.8/32")

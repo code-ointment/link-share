@@ -23,7 +23,7 @@ fi
 PIDFILE=/var/tmp/link-share.pid
 
 if [ $cmd = "start" ]; then
-    exec $homepath/bin/link-share > /var/log/code-ointment/link-share/link-share.log
+    exec $homepath/bin/link-share
 elif [ $cmd = "stop" ]; then
     if [ ! -f $PIDFILE  ] ; then
         echo "Missing pid file, shutdown by hand please"

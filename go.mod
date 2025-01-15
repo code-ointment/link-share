@@ -3,6 +3,7 @@ module github.com/code-ointment/link-share
 go 1.23.3
 
 require (
+	github.com/code-ointment/log-writer v0.0.0-20250115201133-fb2bc840c5d6
 	github.com/google/nftables v0.2.0
 	github.com/vishvananda/netlink v1.3.0
 	golang.org/x/net v0.32.0

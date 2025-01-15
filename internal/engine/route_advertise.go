@@ -42,6 +42,21 @@ func (pe *ProtocolEngine) AdvertiseRoutes() {
 
 	slog.Debug("dns config", "nameserver", pe.dnsConfig.GetNameServers(),
 		"domains", pe.dnsConfig.GetDomains())
+
+	pe.mutex.Lock()
+	defer pe.mutex.Unlock()
+	for _, rt := range rts {
+		pe.SendAdvertisement(&rt)
+	}
+}
+
+func (pe *ProtocolEngine) AdvertiseRoutesUL() {
+
+	rts := pe.rm.GetRouteUpdates()
+	pe.dnsConfig.ReadConfig()
+
+	slog.Debug("dns config", "nameserver", pe.dnsConfig.GetNameServers(),
+		"domains", pe.dnsConfig.GetDomains())
 	for _, rt := range rts {
 		pe.SendAdvertisement(&rt)
 	}
@@ -55,9 +70,6 @@ func (pe *ProtocolEngine) SendAdvertisement(rt *inet.RouteUpdate) {
 
 	mgroup := net.ParseIP(consts.GroupAddr)
 	dst := &net.UDPAddr{IP: mgroup, Port: consts.ListenPort}
-
-	pe.mutex.Lock()
-	defer pe.mutex.Unlock()
 
 	for _, c := range pe.connections {
 

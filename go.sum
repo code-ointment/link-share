@@ -1,3 +1,5 @@
+github.com/code-ointment/log-writer v0.0.0-20250115201133-fb2bc840c5d6 h1:WNFl20ACm6h3y+50SxWHNgYcsBJPPrNhyYXxemxRD8o=
+github.com/code-ointment/log-writer v0.0.0-20250115201133-fb2bc840c5d6/go.mod h1:FmGbq5jPkcS24D0Hs3w685JtSIkzXiyvvxXDUw49Vwg=
 github.com/google/go-cmp v0.6.0 h1:ofyhxvXcZhMsU5ulbFiLKl/XBFqE1GSq7atu8tAmTRI=
 github.com/google/go-cmp v0.6.0/go.mod h1:17dUlkBOakJ0+DkrSSNjCkIjxS6bF9zb3elmeNGIjoY=
 github.com/google/nftables v0.2.0 h1:PbJwaBmbVLzpeldoeUKGkE2RjstrjPKMl6oLrfEJ6/8=
