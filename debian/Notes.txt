@@ -1,0 +1,46 @@
+#
+# Useful info
+#
+https://wiki.debian.org/Packaging/Intro?action=show&redirect=IntroDebianPackaging
+https://www.debian.org/doc/manuals/debian-faq/pkg-basics.en.html#maintscripts
+https://www.debian.org/doc/manuals/debmake-doc/ch04.en.html
+#
+# Change log is machine readable and very touchy about spaces, use the
+# following to initialize debian/changelog.
+#
+dch --create -v 1.0-1 --package hithere
+
+#
+# Version needs to be set in the changelog and in the control file.  Seems odd.
+#
+# Show info about a particular installed package
+#
+apt-cache show debhelper
+
+#
+# Build things.
+#
+debuild -us -uc --prepend-path=/opt/go/bin
+#
+# debuild normally overwrites the path variable.  -ePATH is supposed to
+# retain the path but does not seem to work. Use prepend-path instead
+# The default path is /usr/sbin:/usr/bin:/sbin:/bin:/usr/bin/X11
+#
+
+Install/de-install scripts are 'debian/p*'.
+#
+# Install
+#
+dpkg -i debout/link-share*.deb
+#
+# Remove -  module name we were defined with. I think established by dch?
+#
+dpkg -r rua
+
+# Script command lines for various invocations of dpkg.
+#
+dpkg -i link-share*deb
+dpkg -r link-share 
+
+# upgrade 
+dpkg -i link-share*deb

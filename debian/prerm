@@ -1,0 +1,21 @@
+#!/bin/bash
+
+echo "prerm"
+echo "  " $*
+INSTALL_HOME=/opt/code-ointment/link-share
+
+if [ "$1" = "upgrade" ]; then
+    exit 0
+fi
+
+# clobber our installed systemd service file.
+SERVICE_FILE=$(systemctl show --value -p FragmentPath link-share )
+
+if [ "$SERVICE_FILE" != ""  ]; then
+    systemctl stop link-share
+    systemctl disable link-share
+    rm $SERVICE_FILE 
+    systemctl daemon-reload
+    systemctl reset-failed
+
+fi

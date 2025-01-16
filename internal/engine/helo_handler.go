@@ -32,6 +32,7 @@ func (pe *ProtocolEngine) HeloHandler(hi *link_proto.Helo) {
 
 	// Remote host is requesting an update.
 	if hi.Request == link_proto.HeloRequest_INIT {
+		slog.Debug("init request", "host", h.IP.String())
 		pe.AdvertiseRoutesUL()
 	}
 

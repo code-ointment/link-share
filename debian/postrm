@@ -1,0 +1,20 @@
+#!/bin/bash
+
+echo "postrm - $*"
+
+
+cleanup() {
+    rm -rf /var/log/code-ointment/link-share/
+}
+
+if [ $1 == "upgrade" ]; then
+    exit 0
+fi
+
+if [ $1 == "remove" ]; then
+    cleanup
+fi
+
+if [ $1 == "purge" ]; then
+    cleanup
+fi

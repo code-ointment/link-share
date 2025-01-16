@@ -45,11 +45,15 @@ func (pe *ProtocolEngine) AdvertiseRoutes() {
 
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
+
 	for _, rt := range rts {
 		pe.SendAdvertisement(&rt)
 	}
 }
 
+/*
+* Advertise routes with the object lock off
+ */
 func (pe *ProtocolEngine) AdvertiseRoutesUL() {
 
 	rts := pe.rm.GetRouteUpdates()

@@ -1,0 +1,22 @@
+#!/usr/bin/make -f
+%:
+	dh $@
+
+# Build the musl version
+# override_dh_auto_build:
+#	$(MAKE) musl
+
+# Install into our build environment.
+override_dh_auto_install:
+	$(MAKE) DESTDIR=$$(pwd)/debian/link-share prefix=/opt/code-ointment/link-share install
+
+# Turn off debuild attempts to fiddle with the binaries, otherwise sha 
+# calculation will fail.
+override_dh_dwz:
+	echo "No dh_dwz"
+
+override_dh_compress:
+	echo "No dh_compress"
+
+override_dh_strip:
+	echo "No dh_strip"

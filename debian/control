@@ -1,0 +1,14 @@
+Source: link-share
+Maintainer: stephen.c.sanders@gmail.com  <stephen.c.sanders@gmail.com>
+Section: misc
+Priority: optional
+Standards-Version: 4.6.2
+#
+# Supposed to be 13 and not 12.  My Debian 10 host has debhelper v 12 installed.
+#
+Build-Depends: debhelper-compat (= 12)
+
+Package: link-share
+Architecture: amd64
+Description: share access to vpn link on home network
+ vpn link-sharing

@@ -1,0 +1,17 @@
+#!/bin/bash
+
+echo "postinst - $*"
+#
+# Put the systemd service file in place and set up logging dirs.
+#
+INSTALL_HOME=/opt/code-ointment/link-share
+
+SYSTEMD_CONF_DIR=/usr/lib/systemd/system
+cp  $INSTALL_HOME/etc/link-share.service  \
+    $SYSTEMD_CONF_DIR
+
+mkdir -p /var/log/code-ointment/link-share
+
+systemctl daemon-reload
+systemctl enable link-share
+systemctl restart link-share
