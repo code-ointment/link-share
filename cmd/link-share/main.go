@@ -12,6 +12,7 @@ import (
 	"github.com/code-ointment/link-share/internal/consts"
 	"github.com/code-ointment/link-share/internal/engine"
 	"github.com/code-ointment/link-share/internal/inet"
+	logwriter "github.com/code-ointment/log-writer"
 	"github.com/vishvananda/netlink"
 )
 
@@ -37,6 +38,7 @@ func sigWait() {
 	signal.Notify(intChan, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 	<-intChan
 	slog.Info("Exiting")
+	logwriter.Flush()
 	/*
 	 * Call clean up and other process termination stuff.
 	 */
@@ -57,6 +59,7 @@ func siqQuit() {
 
 	stacklen := runtime.Stack(buf, true)
 	fmt.Printf("*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
+	logwriter.Flush()
 	os.Exit(int(syscall.SIGQUIT))
 }
 

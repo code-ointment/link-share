@@ -4,7 +4,7 @@ import (
 	"log/slog"
 	"path/filepath"
 
-	"github.com/code-ointment/log-writer/log_file"
+	logfile "github.com/code-ointment/log-writer/logfile"
 )
 
 /*
@@ -27,7 +27,7 @@ func init() {
 			return a
 		}}
 
-	lw := log_file.NewLogFileWriter(
+	lw := logfile.NewLogFileWriter(
 		"/var/log/code-ointment/link-share/link-share.log",
 		5, 1024*1024)
 

@@ -1,14 +1,14 @@
 module github.com/code-ointment/link-share
 
-go 1.23.3
+go 1.23.0
 
 require (
-	github.com/code-ointment/log-writer v0.0.0-20250115201133-fb2bc840c5d6
+	github.com/code-ointment/log-writer v0.0.0-20250116135726-8dc56674261b
 	github.com/google/nftables v0.2.0
 	github.com/vishvananda/netlink v1.3.0
-	golang.org/x/net v0.32.0
-	golang.org/x/sys v0.28.0
-	google.golang.org/protobuf v1.35.2
+	golang.org/x/net v0.34.0
+	golang.org/x/sys v0.29.0
+	google.golang.org/protobuf v1.36.3
 )
 
 require (

@@ -38,6 +38,7 @@ func NewProtocolEngine() *ProtocolEngine {
 	pe.rm.Start()
 
 	pe.domain = "placeholder"
+	pe.configured = false
 
 	return &pe
 }
