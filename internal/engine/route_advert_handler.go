@@ -21,7 +21,7 @@ func (pe *ProtocolEngine) AnnounceHandler(an *link_proto.Announce) {
 	slog.Info("dns config",
 		"nameservers", ns,
 		"searchdomains", sd)
-	pe.configured = true // atomic??
+	pe.configured = true // switch to atomic variable
 
 	for _, rt := range rts {
 

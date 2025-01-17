@@ -66,3 +66,6 @@ clean:
 
 realclean: clean
 	go clean -modcache -cache
+
+module:
+	go mod init github.com/code-ointment/link-share
