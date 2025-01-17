@@ -11,7 +11,6 @@ import (
 
 	"github.com/code-ointment/link-share/internal/consts"
 	"github.com/code-ointment/link-share/internal/engine"
-	"github.com/code-ointment/link-share/internal/inet"
 	logwriter "github.com/code-ointment/log-writer"
 	"github.com/vishvananda/netlink"
 )
@@ -49,7 +48,7 @@ func sigWait() {
 * Dump stack similarly to java when a  QUIT is recieved.  Exit while we're
 * at it.
  */
-func siqQuit() {
+func sigQuitHandler() {
 
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGQUIT)
@@ -77,13 +76,7 @@ func heloThread(eng *engine.ProtocolEngine) {
 func main() {
 
 	//rtTest()
-	go siqQuit()
-
-	factory := inet.NewResolverConfigFactory()
-	rc := factory.GetDNSConfig()
-
-	slog.Debug("test", "NameServers", rc.GetNameServers(),
-		"domains", rc.GetDomains())
+	go sigQuitHandler()
 
 	eng := engine.NewProtocolEngine()
 	eng.Start()

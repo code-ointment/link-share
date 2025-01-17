@@ -40,9 +40,10 @@ func NewResolvectlEntry(line string, scanner *bufio.Scanner) *ResolvectlEntry {
 		slog.Warn("parse failure", "ifname not found", line)
 		return nil
 	}
+
 	re.LinkName = strings.Replace(matches[0], "(", "", 1)
 	re.LinkName = strings.Replace(re.LinkName, ")", "", 1)
-
+	re.LinkName = strings.TrimSpace(re.LinkName)
 	re.Parse(scanner)
 	return &re
 }

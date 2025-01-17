@@ -35,8 +35,9 @@ type RouteManager struct {
 }
 
 type RouteUpdate struct {
-	Op  uint16
-	Dst net.IPNet
+	Op     uint16
+	Dst    net.IPNet
+	Ifname string
 }
 
 func NewRouteManager(manager *InterfaceManager) *RouteManager {
@@ -134,7 +135,8 @@ func (rm *RouteManager) routeMonitor() {
 		}
 
 		if rm.classifyUpdate(&ru) {
-			rm.updateLearned(ru.Type, ru.Route.Dst)
+			l := rm.ifm.GetLinkByIndex(ru.LinkIndex)
+			rm.updateLearned(ru.Type, ru.Route.Dst, l.Attrs().Name)
 			rm.routesReady()
 		}
 	}
@@ -194,7 +196,8 @@ func (rm *RouteManager) initLearnedUpdates() {
 			}
 			if rm.classifyUpdate(&ru) {
 				slog.Info("adding to learned updates", "rt", rt)
-				rm.updateLearned(unix.RTM_NEWROUTE, ru.Dst)
+				l := rm.ifm.GetLinkByIndex(ru.LinkIndex)
+				rm.updateLearned(unix.RTM_NEWROUTE, ru.Dst, l.Attrs().Name)
 			}
 		}
 	}
@@ -284,12 +287,12 @@ func (rm *RouteManager) findLearnedUpdate(op uint16, dst *net.IPNet) []*RouteUpd
 /*
 * Find routes that match the update and set flags and/or add as needed.
  */
-func (rm *RouteManager) updateLearned(op uint16, dst *net.IPNet) {
+func (rm *RouteManager) updateLearned(op uint16, dst *net.IPNet, intf string) {
 
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
 
-	ru := RouteUpdate{Op: op, Dst: *dst}
+	ru := RouteUpdate{Op: op, Dst: *dst, Ifname: intf}
 	matches := rm.findLearnedUpdate(op, dst)
 
 	if len(matches) == 0 {

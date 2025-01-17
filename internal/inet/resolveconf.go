@@ -63,20 +63,20 @@ func (rc *ResolveConf) ReadConfig() {
 // DnsConfig implementation.
 
 // Space separated of servers.  Limit is 3.  See man resolv.conf
-func (rc *ResolveConf) SetNameServers(servers string) {
+func (rc *ResolveConf) SetNameServers(intf string, servers string) {
 	rc.NameServers = servers
 }
 
-func (rc *ResolveConf) GetNameServers() string {
+func (rc *ResolveConf) GetNameServers(intf string) string {
 	return rc.NameServers
 }
 
 // Space separated list of search domains
-func (rc *ResolveConf) SetDomains(domains string) {
+func (rc *ResolveConf) SetDomains(intf string, domains string) {
 	rc.Domains = domains
 }
 
-func (rc *ResolveConf) GetDomains() string {
+func (rc *ResolveConf) GetDomains(intf string) string {
 	return rc.Domains
 }
 

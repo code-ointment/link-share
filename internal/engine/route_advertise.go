@@ -40,9 +40,6 @@ func (pe *ProtocolEngine) AdvertiseRoutes() {
 	rts := pe.rm.GetRouteUpdates()
 	pe.dnsConfig.ReadConfig()
 
-	slog.Debug("dns config", "nameserver", pe.dnsConfig.GetNameServers(),
-		"domains", pe.dnsConfig.GetDomains())
-
 	pe.mutex.Lock()
 	defer pe.mutex.Unlock()
 
@@ -59,8 +56,6 @@ func (pe *ProtocolEngine) AdvertiseRoutesUL() {
 	rts := pe.rm.GetRouteUpdates()
 	pe.dnsConfig.ReadConfig()
 
-	slog.Debug("dns config", "nameserver", pe.dnsConfig.GetNameServers(),
-		"domains", pe.dnsConfig.GetDomains())
 	for _, rt := range rts {
 		pe.SendAdvertisement(&rt)
 	}
@@ -85,7 +80,10 @@ func (pe *ProtocolEngine) SendAdvertisement(rt *inet.RouteUpdate) {
 		} else {
 			me = c.GetIPv6Addr()
 		}
-		slog.Info("advertise", "me", me, "op", rt.Op, "dst", inet.IPNetToCidr(&rt.Dst))
+		slog.Info("advertise", "me", me,
+			"op", rt.Op, "dst", inet.IPNetToCidr(&rt.Dst),
+			"ifname", rt.Ifname,
+			"nameserver", pe.dnsConfig.GetNameServers(rt.Ifname))
 
 		route := link_proto.Route{
 			Op:   int32(rt.Op),
@@ -95,8 +93,8 @@ func (pe *ProtocolEngine) SendAdvertisement(rt *inet.RouteUpdate) {
 			Lstate:        link_proto.LinkState_UP,
 			Gateway:       me.String(),
 			Domain:        pe.domain,
-			Nameservers:   pe.dnsConfig.GetNameServers(),
-			Searchdomains: pe.dnsConfig.GetDomains(),
+			Nameservers:   pe.dnsConfig.GetNameServers(rt.Ifname),
+			Searchdomains: pe.dnsConfig.GetDomains(rt.Ifname),
 			Routes:        []*link_proto.Route{&route},
 		}
 

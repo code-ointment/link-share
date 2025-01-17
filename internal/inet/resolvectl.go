@@ -11,9 +11,6 @@ import (
 )
 
 type Resolvectl struct {
-	NameServers string
-	Domains     string
-
 	GlobalProtocols string
 	ResolvConfMode  string
 
@@ -43,6 +40,7 @@ func (rc *Resolvectl) initTmp() {
 
 func (rc *Resolvectl) ReadConfig() {
 
+	rc.Links = nil
 	result := linux.Run([]string{"resolvectl", "status"})
 	scanner := bufio.NewScanner(strings.NewReader(result.Stdout))
 
@@ -56,7 +54,6 @@ func (rc *Resolvectl) ReadConfig() {
 
 		if strings.Contains(line, "Link") {
 			entry := NewResolvectlEntry(line, scanner)
-			slog.Info("entry", "link", entry)
 			rc.Links = append(rc.Links, entry)
 		}
 	}
@@ -88,30 +85,80 @@ func (rc *Resolvectl) getValue(line string) string {
 	return strings.TrimSpace(fields[1])
 }
 
+/*
+* Lookup the entry assocaited with the interface, otherwise return nil
+ */
+func (rc *Resolvectl) findEntryByIntf(intf string) *ResolvectlEntry {
+
+	for _, entry := range rc.Links {
+		if strings.EqualFold(intf, entry.LinkName) {
+			return entry
+		}
+	}
+	return nil
+}
+
+func (rc *Resolvectl) addResolvectlEntry(intf string) *ResolvectlEntry {
+
+	// Forcing a default, fix later. Not sure we need LinkIndex for our
+	// purpose
+	re := ResolvectlEntry{
+		Scope:     "DNS",
+		Protocols: "+DefaultRoute -LLMNR -mDNS -DNSOverTLS DNSSEC=no/unsupported",
+		LinkName:  intf,
+	}
+	rc.Links = append(rc.Links, &re)
+	return &re
+}
+
 // DnsConfig implementation.
 
 // Space separated of servers.  Limit is 3.  See man resolv.conf
-func (rc *Resolvectl) SetNameServers(servers string) {
-	rc.NameServers = servers
+func (rc *Resolvectl) SetNameServers(intf string, servers string) {
+
+	entry := rc.findEntryByIntf(intf)
+	if entry == nil {
+		entry = rc.addResolvectlEntry(intf)
+		entry.DnsServers = servers
+		entry.CurrentDnsServer = servers
+	} else {
+		entry.DnsServers = servers
+		entry.CurrentDnsServer = servers
+	}
 }
 
-func (rc *Resolvectl) GetNameServers() string {
-	return rc.NameServers
+func (rc *Resolvectl) GetNameServers(intf string) string {
+	entry := rc.findEntryByIntf(intf)
+	slog.Info("resolvectl", "entry", entry)
+	if entry != nil {
+		return entry.DnsServers
+	}
+	return ""
 }
 
 // Space separated list of search domains
-func (rc *Resolvectl) SetDomains(domains string) {
-	rc.Domains = domains
+func (rc *Resolvectl) SetDomains(intf string, domains string) {
+	entry := rc.findEntryByIntf(intf)
+	if entry == nil {
+		entry = rc.addResolvectlEntry(intf)
+		entry.DnsDomains = domains
+	} else {
+		entry.DnsDomains = domains
+	}
 }
 
-func (rc *Resolvectl) GetDomains() string {
-	return rc.Domains
+func (rc *Resolvectl) GetDomains(intf string) string {
+	entry := rc.findEntryByIntf(intf)
+	if entry != nil {
+		return entry.DnsDomains
+	}
+	return ""
 }
 
 // Backup the current configuration
 func (rc *Resolvectl) BackupConfig() {
 
-	if len(rc.NameServers) == 0 && len(rc.Domains) == 0 {
+	if len(rc.Links) == 0 {
 		slog.Warn("resolvectl ReadConfig not invoked, nothing to back up")
 		return
 	}
@@ -158,7 +205,9 @@ func (rc *Resolvectl) Commit() bool {
 
 	ifm := NewInterfaceManager()
 	l := ifm.GetDefaultLink()
-	domains := strings.Split(rc.Domains, " ")
+
+	vstr := rc.GetDomains(l.Attrs().Name)
+	domains := strings.Split(vstr, " ")
 	vec := []string{"resolvectl", "domain", l.Attrs().Name}
 	vec = append(vec, domains...)
 
@@ -169,7 +218,8 @@ func (rc *Resolvectl) Commit() bool {
 		return false
 	}
 
-	nameservers := strings.Split(rc.NameServers, " ")
+	vstr = rc.GetNameServers(l.Attrs().Name)
+	nameservers := strings.Split(vstr, " ")
 	vec = []string{"resolvectl", "dns", l.Attrs().Name}
 	vec = append(vec, nameservers...)
 

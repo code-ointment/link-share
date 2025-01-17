@@ -7,12 +7,12 @@ package inet
  */
 type DnsConfig interface {
 	// Space separated of servers.  Limit is 3.  See man resolv.conf
-	SetNameServers(servers string)
-	GetNameServers() string
+	SetNameServers(intf string, servers string)
+	GetNameServers(intf string) string
 
 	// Space separated list of search domains
-	SetDomains(domains string)
-	GetDomains() string
+	SetDomains(intf string, domains string)
+	GetDomains(intf string) string
 	// Fetch the current DNS configuration
 	ReadConfig()
 	// Backup the current configuration
