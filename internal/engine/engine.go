@@ -47,6 +47,7 @@ func NewProtocolEngine() *ProtocolEngine {
 * Set up multicast and start all of the listeners.
  */
 func (pe *ProtocolEngine) Start() {
+
 	pe.setupMulticast()
 	pe.listen()
 
@@ -167,7 +168,6 @@ func (pe *ProtocolEngine) IsLocalAddr(addr net.Addr) bool {
 	for _, a := range pe.localAddrs {
 
 		right := inet.AddrToIP(a)
-		//slog.Debug("address", "left", left, "right", right)
 		if left.Equal(right) {
 			return true
 		}
@@ -177,10 +177,21 @@ func (pe *ProtocolEngine) IsLocalAddr(addr net.Addr) bool {
 
 func (pe *ProtocolEngine) getHeloRequest() link_proto.HeloRequest {
 
-	// We're configured or we're holding tunnels.
-	// TODO: revisit holding tunnels condition
-	if pe.ifm.HasTunnels() || pe.configured {
-		return link_proto.HeloRequest_NONE
+	// Host is configured, say hello
+	if pe.configured {
+		return link_proto.HeloRequest_HELO
+	}
+	//
+	// Host has a tunnel that is up.
+	// TODO: revisit tunnel condition, what if there are other tunnels?
+	//
+	if pe.ifm.HasTunnels() {
+		for _, tun := range pe.ifm.GetTunnels() {
+			if pe.ifm.IsUp(tun) {
+				return link_proto.HeloRequest_HELO
+			}
+		}
+		return link_proto.HeloRequest_HELO
 	}
 
 	return link_proto.HeloRequest_INIT

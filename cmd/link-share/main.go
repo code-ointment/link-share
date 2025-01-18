@@ -12,35 +12,43 @@ import (
 	"github.com/code-ointment/link-share/internal/consts"
 	"github.com/code-ointment/link-share/internal/engine"
 	logwriter "github.com/code-ointment/log-writer"
-	"github.com/vishvananda/netlink"
 )
 
-func rtTest() {
+const (
+	pidFile = "/var/tmp/link-share.pid"
+)
 
-	l, _ := netlink.LinkByName("ens160")
-	routes, err := netlink.RouteList(l, netlink.FAMILY_V4|netlink.FAMILY_V6)
+/*
+* record our PID in /var/tmp
+ */
+func recordPid() {
+
+	fd, err := os.OpenFile(pidFile, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, 0600)
 	if err != nil {
-		slog.Error("failed getting routes", "error", err)
-		return
+		slog.Error("can't write pid file", "error", err)
+		os.Exit(1)
 	}
-	for _, rt := range routes {
-		slog.Info("Route", "rt", rt)
-	}
+
+	pid := os.Getpid()
+	fmt.Fprintf(fd, "%d", pid)
+	fd.Close()
+
 }
 
 /*
 * Wait for an exit signal.
  */
-func sigWait() {
+func sigWaitHandler() {
 
+	slog.Info("link-share waiting for exit signal")
 	intChan := make(chan os.Signal, 1)
 	signal.Notify(intChan, os.Interrupt, syscall.SIGTERM, syscall.SIGUSR1)
 	<-intChan
 	slog.Info("Exiting")
+	// Wait for logwriter to finish archiving.
 	logwriter.Flush()
-	/*
-	 * Call clean up and other process termination stuff.
-	 */
+	os.Remove(pidFile)
+
 	os.Exit(0)
 }
 
@@ -59,6 +67,8 @@ func sigQuitHandler() {
 	stacklen := runtime.Stack(buf, true)
 	fmt.Printf("*** goroutine dump...\n%s\n*** end\n", buf[:stacklen])
 	logwriter.Flush()
+	os.Remove(pidFile)
+
 	os.Exit(int(syscall.SIGQUIT))
 }
 
@@ -75,12 +85,13 @@ func heloThread(eng *engine.ProtocolEngine) {
 
 func main() {
 
-	//rtTest()
 	go sigQuitHandler()
 
 	eng := engine.NewProtocolEngine()
 	eng.Start()
 
 	go heloThread(eng)
-	sigWait()
+	recordPid()
+
+	sigWaitHandler()
 }

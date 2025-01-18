@@ -4,7 +4,7 @@ package link_proto;
 option go_package = "code-ointment/link-share/link_proto";
 
 enum HeloRequest {
-    NONE = 0;
+    HELO = 0;
     INIT = 1;
 }
 

@@ -22,8 +22,11 @@ if [ ! -z "$1" ] ; then
 fi
 PIDFILE=/var/tmp/link-share.pid
 
+STDOUT=/var/log/code-ointment/link-share/link-share.stdout
+STDERR=/var/log/code-ointment/link-share/link-share.stderr
+
 if [ $cmd = "start" ]; then
-    exec $homepath/bin/link-share
+    exec $homepath/bin/link-share > $STDOUT 2>$STDERR
 elif [ $cmd = "stop" ]; then
     if [ ! -f $PIDFILE  ] ; then
         echo "Missing pid file, shutdown by hand please"
