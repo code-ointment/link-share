@@ -25,6 +25,7 @@ func (pe *ProtocolEngine) AnnounceHandler(an *link_proto.Announce) {
 
 	for _, rt := range rts {
 
+		slog.Info("Announce Update", "op", rt.Op)
 		if rt.Op == unix.RTM_NEWROUTE {
 			slog.Info("add route ",
 				"gw", gw, "dst", rt.Dest, "domain", domain)

@@ -464,6 +464,9 @@ func (rm *RouteManager) DeleteRoute(dest string, gateway string) bool {
 	return true
 }
 
+/*
+* Remove the route from our self routes table.
+ */
 func (rm *RouteManager) delSelfRoute(dst *net.IPNet) *netlink.Route {
 
 	for i, rt := range rm.selfRoutes {
@@ -473,4 +476,18 @@ func (rm *RouteManager) delSelfRoute(dst *net.IPNet) *netlink.Route {
 		}
 	}
 	return nil
+}
+
+/*
+* Drop our self route table and remove the route from the kernel
+ */
+func (rm *RouteManager) DropSelfRoutes() {
+
+	rm.mutex.Lock()
+	defer rm.mutex.Lock()
+
+	for _, rt := range rm.selfRoutes {
+		netlink.RouteDel(&rt)
+	}
+	rm.selfRoutes = nil
 }

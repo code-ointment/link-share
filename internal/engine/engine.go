@@ -237,3 +237,17 @@ func (pe *ProtocolEngine) SendHelo() {
 	}
 	pe.mutex.Unlock()
 }
+
+/*
+* Withdraw configuration
+ */
+func (pe *ProtocolEngine) Shutdown() {
+
+	if !pe.configured {
+		slog.Debug("shutdown", "no configration to withdraw")
+		return
+	}
+
+	pe.dnsConfig.RestoreConfig()
+	pe.rm.DropSelfRoutes()
+}

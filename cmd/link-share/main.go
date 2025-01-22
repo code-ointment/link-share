@@ -18,6 +18,9 @@ const (
 	pidFile = "/var/tmp/link-share.pid"
 )
 
+// Using global so signal handlers can access.
+var eng *engine.ProtocolEngine
+
 /*
 * record our PID in /var/tmp
  */
@@ -48,8 +51,6 @@ func sigWaitHandler() {
 	// Wait for logwriter to finish archiving.
 	logwriter.Flush()
 	os.Remove(pidFile)
-
-	os.Exit(0)
 }
 
 /*
@@ -69,6 +70,9 @@ func sigQuitHandler() {
 	logwriter.Flush()
 	os.Remove(pidFile)
 
+	if eng != nil {
+		eng.Shutdown()
+	}
 	os.Exit(int(syscall.SIGQUIT))
 }
 
@@ -87,11 +91,14 @@ func main() {
 
 	go sigQuitHandler()
 
-	eng := engine.NewProtocolEngine()
+	eng = engine.NewProtocolEngine()
 	eng.Start()
 
 	go heloThread(eng)
 	recordPid()
 
 	sigWaitHandler()
+
+	eng.Shutdown()
+	os.Exit(0)
 }
