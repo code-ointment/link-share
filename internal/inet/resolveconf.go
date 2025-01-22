@@ -1,5 +1,8 @@
 package inet
 
+/*
+* Handle updating a typical /etc/resolv.conf configuration
+ */
 import (
 	"bufio"
 	"fmt"
@@ -7,6 +10,12 @@ import (
 	"log/slog"
 	"os"
 	"strings"
+)
+
+const (
+	globalDnsDomain string = "~."
+	resolv_conf     string = "/etc/resolv.conf"
+	backupFile      string = "/var/tmp/link-share/backup.conf"
 )
 
 type ResolveConf struct {
@@ -18,14 +27,16 @@ func NewResolveConf() *ResolveConf {
 
 	rc := ResolveConf{}
 	rc.ReadConfig()
-
+	rc.initTmp()
 	return &rc
 }
 
-const (
-	resolv_conf string = "/etc/resolv.conf"
-	backupFile  string = "/var/tmp/link-share/backup.conf"
-)
+func (rc *ResolveConf) initTmp() {
+
+	if _, err := os.Stat(backupDir); err != nil {
+		os.MkdirAll(backupDir, 0700)
+	}
+}
 
 /*
  */
@@ -56,7 +67,6 @@ func (rc *ResolveConf) ReadConfig() {
 		if strings.Contains(line, "search") {
 			rc.Domains = rc.getValue(line)
 		}
-		// domain ?  is anyone still using it?
 	}
 }
 
@@ -73,6 +83,14 @@ func (rc *ResolveConf) GetNameServers(intf string) string {
 
 // Space separated list of search domains
 func (rc *ResolveConf) SetDomains(intf string, domains string) {
+
+	// Don't think resolv.conf can handle the global dns marker.
+	if strings.Contains(domains, globalDnsDomain) {
+		tmp := domains
+		tmp = strings.Replace(tmp, globalDnsDomain, "", 1)
+		rc.Domains = tmp
+		return
+	}
 	rc.Domains = domains
 }
 
@@ -104,23 +122,29 @@ func (rc *ResolveConf) Commit() bool {
 	return false
 }
 
-func (rc *ResolveConf) BackupConfig() {
+func (rc *ResolveConf) BackupConfig() bool {
+
+	if _, err := os.Stat(backupFile); err == nil {
+		slog.Warn("dns config already backed up")
+		return false
+	}
 
 	src, err := os.Open(resolv_conf)
 	if err != nil {
 		slog.Warn("failed opening "+resolv_conf, "error", err)
-		return
+		return false
 	}
 	defer src.Close()
 
 	dest, err := os.OpenFile(backupFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		slog.Warn("failed opening "+backupFile, "error", err)
-		return
+		return false
 	}
 	defer dest.Close()
 
 	io.Copy(dest, src)
+	return true
 }
 
 /*
@@ -143,4 +167,5 @@ func (rc *ResolveConf) RestoreConfig() {
 	defer dest.Close()
 
 	io.Copy(dest, src)
+	os.Remove(backupFile)
 }

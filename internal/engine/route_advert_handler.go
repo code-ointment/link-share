@@ -29,13 +29,25 @@ func (pe *ProtocolEngine) AnnounceHandler(an *link_proto.Announce) {
 			slog.Info("add route ",
 				"gw", gw, "dst", rt.Dest, "domain", domain)
 
-			pe.rm.AddRoute(rt.Dest, gw)
+			// hmmm...
+			if pe.rm.AddRoute(rt.Dest, gw) {
+
+				intf := pe.ifm.GetDefaultLink()
+				if pe.dnsConfig.BackupConfig() {
+					pe.dnsConfig.SetNameServers(intf.Attrs().Name, ns)
+					pe.dnsConfig.SetDomains(intf.Attrs().Name, sd)
+					pe.dnsConfig.Commit()
+				}
+			}
 		}
 
 		if rt.Op == unix.RTM_DELROUTE {
 			slog.Info("delete route ",
 				"gw", gw, "dst", rt.Dest, "domain", domain)
-			pe.rm.DeleteRoute(rt.Dest, gw)
+			// hmmm...
+			if pe.rm.DeleteRoute(rt.Dest, gw) {
+				pe.dnsConfig.RestoreConfig()
+			}
 		}
 	}
 }

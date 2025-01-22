@@ -396,7 +396,7 @@ func (rm *RouteManager) findSelfRouteLocked(dst *net.IPNet) *netlink.Route {
 /*
 * Add a route to the kernel.
  */
-func (rm *RouteManager) AddRoute(dest string, gateway string) {
+func (rm *RouteManager) AddRoute(dest string, gateway string) bool {
 
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -404,12 +404,12 @@ func (rm *RouteManager) AddRoute(dest string, gateway string) {
 	_, dst, err := net.ParseCIDR(dest)
 	if err != nil {
 		slog.Warn("Failed parsing", "dest", dest)
-		return
+		return false
 	}
 
 	if rm.findSelfRoute(dst) != nil {
 		slog.Info("route exists, skipping", "route", dest)
-		return
+		return false
 	}
 
 	// Look up the route to the gateway.
@@ -418,25 +418,27 @@ func (rm *RouteManager) AddRoute(dest string, gateway string) {
 	gwrt, err := netlink.RouteGet(gw)
 	if err != nil {
 		slog.Warn("route lookup failure", "error", err)
-		return
+		return false
 	}
 
 	if len(gwrt) > 0 {
 		rt := netlink.Route{LinkIndex: gwrt[0].LinkIndex, Dst: dst, Gw: gw}
 		if err := netlink.RouteAdd(&rt); err != nil {
 			slog.Warn("error adding route", "error", err)
-			return
+			return false
 		}
 		rm.selfRoutes = append(rm.selfRoutes, rt)
+		return true
 	} else {
 		slog.Warn("No route found to gateway", "addr", gateway)
+		return false
 	}
 }
 
 /*
 * Delete the route from our ownRoute table and the kernel.
  */
-func (rm *RouteManager) DeleteRoute(dest string, gateway string) {
+func (rm *RouteManager) DeleteRoute(dest string, gateway string) bool {
 
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
@@ -444,21 +446,22 @@ func (rm *RouteManager) DeleteRoute(dest string, gateway string) {
 	_, dst, err := net.ParseCIDR(dest)
 	if err != nil {
 		slog.Warn("Failed parsing", "dest", dest)
-		return
+		return false
 	}
 
 	rt := rm.findSelfRoute(dst)
 	if rt == nil {
 		slog.Info("not a self route", "route", dest)
-		return
+		return false
 	}
 
 	if err := netlink.RouteDel(rt); err != nil {
 		slog.Warn("error deleting route", "error", err)
-		return
+		return false
 	}
 
 	rm.delSelfRoute(dst)
+	return true
 }
 
 func (rm *RouteManager) delSelfRoute(dst *net.IPNet) *netlink.Route {

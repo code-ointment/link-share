@@ -156,28 +156,32 @@ func (rc *Resolvectl) GetDomains(intf string) string {
 }
 
 // Backup the current configuration
-func (rc *Resolvectl) BackupConfig() {
+func (rc *Resolvectl) BackupConfig() bool {
 
+	if _, err := os.Stat(backupJsonFile); err == nil {
+		slog.Warn("dns config already backed up")
+		return false
+	}
 	if len(rc.Links) == 0 {
 		slog.Warn("resolvectl ReadConfig not invoked, nothing to back up")
-		return
+		return false
 	}
 
 	rc.initTmp()
 	fd, err := os.OpenFile(backupJsonFile, os.O_CREATE|os.O_TRUNC|os.O_RDWR, 0600)
 	if err != nil {
 		slog.Warn("error opening backup", "error", err)
-		return
+		return false
 	}
 	defer fd.Close()
 
 	b, err := json.Marshal(rc)
 	if err != nil {
 		slog.Warn("error marshalling", "error", err)
-		return
+		return false
 	}
 	fd.Write(b)
-
+	return true
 }
 
 // Restore previously backed up configuration
@@ -198,6 +202,8 @@ func (rc *Resolvectl) RestoreConfig() {
 		slog.Warn("error marshalling", "error", err)
 		return
 	}
+	rc.Commit()
+	os.Remove(backupJsonFile)
 }
 
 // Commit changes

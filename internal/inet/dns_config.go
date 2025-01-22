@@ -16,7 +16,7 @@ type DnsConfig interface {
 	// Fetch the current DNS configuration
 	ReadConfig()
 	// Backup the current configuration
-	BackupConfig()
+	BackupConfig() bool
 	// Restore previously backed up configuration
 	RestoreConfig()
 	// Commit changes
