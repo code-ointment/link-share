@@ -128,6 +128,7 @@ func (rm *RouteManager) routeMonitor() {
 	for {
 		ru := <-ch
 
+		slog.Debug("channel read", "ru", ru)
 		// Don't advertise routes we inserted.
 		if rm.findSelfRouteLocked(ru.Dst) != nil {
 			slog.Debug("own route, not announced")
@@ -390,7 +391,8 @@ func (rm *RouteManager) findSelfRouteLocked(dst *net.IPNet) *netlink.Route {
 	rm.mutex.Lock()
 	defer rm.mutex.Unlock()
 
-	return rm.findSelfRoute(dst)
+	rt := rm.findSelfRoute(dst)
+	return rt
 }
 
 /*
@@ -484,10 +486,10 @@ func (rm *RouteManager) delSelfRoute(dst *net.IPNet) *netlink.Route {
 func (rm *RouteManager) DropSelfRoutes() {
 
 	rm.mutex.Lock()
-	defer rm.mutex.Lock()
+	defer rm.mutex.Unlock()
 
 	for _, rt := range rm.selfRoutes {
 		netlink.RouteDel(&rt)
 	}
-	rm.selfRoutes = nil
+	rm.selfRoutes = []netlink.Route{}
 }

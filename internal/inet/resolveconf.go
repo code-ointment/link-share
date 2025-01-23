@@ -152,6 +152,11 @@ func (rc *ResolveConf) BackupConfig() bool {
  */
 func (rc *ResolveConf) RestoreConfig() {
 
+	if _, err := os.Lstat(backupFile); err != nil {
+		slog.Debug("no backup dns config")
+		return
+	}
+
 	src, err := os.Open(backupFile)
 	if err != nil {
 		slog.Warn("failed opening "+backupFile, "error", err)

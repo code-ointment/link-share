@@ -191,7 +191,6 @@ func (pe *ProtocolEngine) getHeloRequest() link_proto.HeloRequest {
 				return link_proto.HeloRequest_HELO
 			}
 		}
-		return link_proto.HeloRequest_HELO
 	}
 
 	return link_proto.HeloRequest_INIT
@@ -244,7 +243,7 @@ func (pe *ProtocolEngine) SendHelo() {
 func (pe *ProtocolEngine) Shutdown() {
 
 	if !pe.configured {
-		slog.Debug("shutdown", "no configration to withdraw")
+		slog.Debug("shutdown - no configuration to withdraw")
 		return
 	}
 
