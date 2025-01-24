@@ -171,11 +171,22 @@ func (ifm *InterfaceManager) GetTunnelByIndex(linkIndex int) netlink.Link {
 * Have we detected any tunnels?
  */
 func (ifm *InterfaceManager) HasTunnels() bool {
-	return len(ifm.tunnels) != 0
+	ifm.mutex.Lock()
+	defer ifm.mutex.Unlock()
+	v := len(ifm.tunnels) != 0
+	return v
 }
 
+/*
+* Return a copy of our current tunnel set
+ */
 func (ifm *InterfaceManager) GetTunnels() []netlink.Link {
-	return ifm.tunnels
+	ifm.mutex.Lock()
+	defer ifm.mutex.Unlock()
+
+	t := []netlink.Link{}
+	t = append(t, ifm.tunnels...)
+	return t
 }
 
 func (ifm *InterfaceManager) GetDefaultLink() netlink.Link {
