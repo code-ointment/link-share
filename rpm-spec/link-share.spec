@@ -1,5 +1,5 @@
 Name:     link-share
-Version: %{?build_version:%build_version}%{?!build_version:0.0.0}
+Version: %{?version:%version}%{?!version:0.0.0}
 Release: %{?build_number:%build_number}%{?!build_number:1}
 Summary:  code-ointment link-share
 License:  MIT

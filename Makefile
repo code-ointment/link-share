@@ -23,8 +23,8 @@ link-share:
 rpm:
 	tar -czf ${HOME}/rpmbuild/SOURCES/link-share.tar.gz .
 	rpmbuild -bb  \
-		--define "build_number  ${BUILD_NUMBER}" \
-		--define "build_version ${BUILD_VERSION}" \
+		--define "build_number ${BUILD_NUMBER}" \
+		--define "version ${VERSION}" \
 		rpm-spec/link-share.spec
 	mkdir -p ${PWD}/build-output
 	mv ${HOME}/rpmbuild/RPMS/x86_64/link-share*.rpm build-output
@@ -33,7 +33,7 @@ rpm:
 # Output in build-output.
 #
 deb:
-	BUILD_NUMBER=${BUILD_NUMBER} BUILD_VERSION=${BUILD_VERSION} scripts/makedeb.sh
+	BUILD_NUMBER=${BUILD_NUMBER} VERSION=${VERSION} scripts/makedeb.sh
 
 # used by debian package create.
 install:
@@ -63,6 +63,7 @@ endif
 clean:
 	rm -f bin/*
 	rm -f link_proto/*.pb.go
+	rm -rf build-output/*
 
 realclean: clean
 	go clean -modcache -cache
