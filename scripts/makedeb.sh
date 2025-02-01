@@ -1,7 +1,7 @@
 #!/bin/bash
 
-if [ -z "$BUILD_VERSION" ]; then
-    echo "BUILD_VERSION not set, exiting"
+if [ -z "$VERSION" ]; then
+    echo "VERSION not set, exiting"
     exit 1
 fi
 
@@ -16,7 +16,7 @@ if [ ! -d $DEBIAN_OUT_DIR ] ; then
 fi
 rm -f $DEBIAN_OUT_DIR/*
 
-FULL_VERSION=$BUILD_VERSION-$BUILD_NUMBER
+FULL_VERSION=$VERSION-$BUILD_NUMBER
 export DEBEMAIL=stephen.c.sanders@gmail.com
 export DEBFULLNAME="stephen.c.sanders@gmail.com"
 
@@ -30,7 +30,7 @@ dch --create \
 
 # debuild drops most PATH elements, prepend-path allows us to add back.
 # TODO: $HOME/go/bin probably not the right thing to do here.
-debuild  --preserve-envvar=BUILD_VERSION \
+debuild  --preserve-envvar=VERSION \
     --preserve-envvar=BUILD_NUMBER \
     --prepend-path=/opt/go/bin:$HOME/go/bin \
     --no-lintian -i -us -uc -b -tc
@@ -50,6 +50,6 @@ debian/link-share \
 debian/.debhelper
 
 mkdir -p build-output
-cp $DEBIAN_OUT_DIR/link-share_$BUILD_VERSION-$BUILD_NUMBER_*.deb ./build-output/
+cp $DEBIAN_OUT_DIR/link-share_$VERSION-$BUILD_NUMBER_*.deb ./build-output/
 
 rm -rf $DEBIAN_OUT_DIR
