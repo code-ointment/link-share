@@ -63,7 +63,10 @@ func (nfu *NftUtil) EnableForwarding() {
 		slog.Error("failed opening nftables", "error", err)
 		os.Exit(1)
 	}
-	c.FlushRuleset()
+	/*
+	* TODO: Read and merge is probably a better tactic.
+	* c.FlushRuleset()
+	 */
 
 	nfu.nat = c.AddTable(&nftables.Table{
 		Family: nftables.TableFamilyINet,
