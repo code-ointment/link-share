@@ -52,6 +52,10 @@ link_proto/link-share.pb.go : link_proto/link-share.proto
 	--go_opt=paths=source_relative \
 	link_proto/*.proto
 
+#
+# alma 10 requires enabling /etc/yum.repos.d/almalinux-crb.repo to install
+# protobuf-compiler.
+#
 depends:
 ifdef RPM_INSTALLED
 	sudo dnf install protobuf-compiler
